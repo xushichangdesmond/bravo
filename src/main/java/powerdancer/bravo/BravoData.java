@@ -3,6 +3,7 @@ package powerdancer.bravo;
 import avro.shaded.com.google.common.cache.CacheBuilder;
 import avro.shaded.com.google.common.cache.CacheLoader;
 import avro.shaded.com.google.common.cache.LoadingCache;
+import org.apache.avro.JsonProperties;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
@@ -35,7 +36,12 @@ public class BravoData extends ReflectData {
     @Override
     protected Object getField(Object record, String name, int pos, Object state) {
         if (!(state instanceof RecordDataState)) {
-            return super.getField(record, name, pos, state);
+            try {
+                return super.getField(record, name, pos, state);
+            }
+            catch(NullPointerException e) {
+                return null;
+            }
         }
         RecordDataState ds = ((RecordDataState) state);
         FieldAccessor acc = ds.fields[pos];
