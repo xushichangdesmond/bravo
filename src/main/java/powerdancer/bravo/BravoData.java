@@ -1,9 +1,5 @@
 package powerdancer.bravo;
 
-import avro.shaded.com.google.common.cache.CacheBuilder;
-import avro.shaded.com.google.common.cache.CacheLoader;
-import avro.shaded.com.google.common.cache.LoadingCache;
-import org.apache.avro.JsonProperties;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
@@ -12,6 +8,9 @@ import org.apache.avro.reflect.ReflectDatumWriter;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -19,6 +18,7 @@ import java.util.function.Function;
  */
 public class BravoData extends ReflectData {
 
+    final ConcurrentMap<ClassAndSchema, RecordDataState> recordDataCache = new ConcurrentHashMap<>();
     final SchemaFieldAccessorOverridesProvider schemaFieldAccessorOverridesProvider;
 
     public BravoData(SchemaFieldAccessorOverridesProvider schemaFieldAccessorOverridesProvider) {
@@ -27,9 +27,11 @@ public class BravoData extends ReflectData {
 
     @Override
     protected RecordDataState getRecordState(Object record, Schema schema) {
-        return new RecordDataState(
-                super.getRecordState(record, schema),
-                schemaFieldAccessorOverridesProvider.apply(schema)
+        return recordDataCache.computeIfAbsent(new ClassAndSchema(record.getClass(), schema),
+                p -> new RecordDataState(
+                        super.getRecordState(record, schema),
+                        schemaFieldAccessorOverridesProvider.apply(record.getClass(), schema)
+                )
         );
     }
 
@@ -63,11 +65,15 @@ public class BravoData extends ReflectData {
     }
 
     @FunctionalInterface
-    public interface SchemaFieldAccessorOverridesProvider extends Function<Schema, FieldAccessor[]> {
+    private interface SchemaFieldAccessorOverridesProvider extends BiFunction<Class, Schema, FieldAccessor[]> {
+        @Override
+        FieldAccessor[] apply(Class recordClass, Schema recordSchema);
     }
 
     @FunctionalInterface
-    public interface FieldAccessorOverridesProvider extends Function<Schema.Field, FieldAccessor> {
+    public interface FieldAccessorOverridesProvider extends BiFunction<Class, String, FieldAccessor> {
+        @Override
+        FieldAccessor apply(Class recordClass, String fieldName);
     }
 
     static class RecordDataState {
@@ -102,12 +108,11 @@ public class BravoData extends ReflectData {
     }
 
     public static BravoData buildWithOverrides(FieldAccessorOverridesProvider p) {
-        LoadingCache<Schema, FieldAccessor[]> c = CacheBuilder.newBuilder().build(
-                CacheLoader.from(schema -> {
-                    return schema.getFields().stream().map(p).toArray(FieldAccessor[]::new);
-                })
-        );
-        return new BravoData(c::getUnchecked);
+        return new BravoData((recordClass, recordSchema) -> {
+            return recordSchema.getFields().stream().map(
+                    f->p.apply(recordClass, f.name())
+            ).toArray(FieldAccessor[]::new);
+        });
     }
 
     @Override
@@ -125,5 +130,29 @@ public class BravoData extends ReflectData {
                 }
             }
         };
+    }
+
+    private class ClassAndSchema {
+        final Class klass;
+        final Schema schema;
+
+        ClassAndSchema(Class klass, Schema schema) {
+            this.klass = klass;
+            this.schema = schema;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ClassAndSchema that = (ClassAndSchema) o;
+            return Objects.equals(klass, that.klass) &&
+                    Objects.equals(schema, that.schema);
+        }
+
+        @Override
+        public int hashCode() {
+            return klass.hashCode() * 31 + schema.hashCode();
+        }
     }
 }

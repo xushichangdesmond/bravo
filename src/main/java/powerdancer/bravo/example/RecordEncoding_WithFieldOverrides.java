@@ -26,6 +26,7 @@ public class RecordEncoding_WithFieldOverrides {
     static class Scores {
         final int mathScore;
         final int javaScore;
+        final String name = "meow";
 
         public Scores(int mathScore, int javaScore) {
             this.mathScore = mathScore;
@@ -44,18 +45,21 @@ public class RecordEncoding_WithFieldOverrides {
                                         .requiredInt("mathScore")
                                         .requiredInt("javaScore")
                                         .requiredInt("total") // sum of mathScore and javaScore
+                                        .requiredString("name")
                                     .endRecord()
                     ).noDefault()
                 .endRecord();
 
 
+        Map<String, BravoData.FieldAccessor> overrides = ImmutableMap.of(
+                "serializationTime",
+                BravoData.FieldAccessor.readOnly(rec->System.currentTimeMillis()),
+                "total",
+                BravoData.FieldAccessor.<Scores, Integer>readOnly(rec->rec.mathScore + rec.javaScore)
+        );
+
         BravoData bravoData = BravoData.buildWithOverrides(
-                ImmutableMap.of(
-                    schema.getField("serializationTime"),
-                        BravoData.FieldAccessor.readOnly(rec->System.currentTimeMillis()),
-                    schema.getField("scores").schema().getField("total"),
-                        BravoData.FieldAccessor.<Scores, Integer>readOnly(rec->rec.mathScore + rec.javaScore)
-                )::get
+                (recordClass, fieldName) -> overrides.get(fieldName)
         );
 
         JsonEncoder enc = EncoderFactory.get().jsonEncoder(schema, System.out, true);
