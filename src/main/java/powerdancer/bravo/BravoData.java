@@ -18,8 +18,8 @@ import java.util.function.Function;
  */
 public class BravoData extends ReflectData {
 
-    final ConcurrentMap<ClassAndSchema, RecordDataState> recordDataCache = new ConcurrentHashMap<>();
-    final SchemaFieldAccessorOverridesProvider schemaFieldAccessorOverridesProvider;
+    protected final ConcurrentMap<ClassAndSchema, RecordDataState> recordDataCache = new ConcurrentHashMap<>();
+    protected final SchemaFieldAccessorOverridesProvider schemaFieldAccessorOverridesProvider;
 
     public BravoData(SchemaFieldAccessorOverridesProvider schemaFieldAccessorOverridesProvider) {
         this.schemaFieldAccessorOverridesProvider = Objects.requireNonNull(schemaFieldAccessorOverridesProvider);
@@ -65,7 +65,7 @@ public class BravoData extends ReflectData {
     }
 
     @FunctionalInterface
-    private interface SchemaFieldAccessorOverridesProvider extends BiFunction<Class, Schema, FieldAccessor[]> {
+    public interface SchemaFieldAccessorOverridesProvider extends BiFunction<Class, Schema, FieldAccessor[]> {
         @Override
         FieldAccessor[] apply(Class recordClass, Schema recordSchema);
     }
@@ -75,7 +75,7 @@ public class BravoData extends ReflectData {
         FieldAccessor apply(Class recordClass, Schema recordSchema, String fieldName);
     }
 
-    static class RecordDataState {
+    public static class RecordDataState {
         final Object reflectState;
         final FieldAccessor[] fields;
 
@@ -131,11 +131,11 @@ public class BravoData extends ReflectData {
         };
     }
 
-    class ClassAndSchema {
-        final Class klass;
-        final Schema schema;
+    public class ClassAndSchema {
+        public final Class klass;
+        public final Schema schema;
 
-        ClassAndSchema(Class klass, Schema schema) {
+        public ClassAndSchema(Class klass, Schema schema) {
             this.klass = klass;
             this.schema = schema;
         }
