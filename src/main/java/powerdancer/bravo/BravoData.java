@@ -76,8 +76,8 @@ public class BravoData extends ReflectData {
     }
 
     public static class RecordDataState {
-        final Object reflectState;
-        final FieldAccessor[] fields;
+        public final Object reflectState;
+        public final FieldAccessor[] fields;
 
         public RecordDataState(Object reflectState, FieldAccessor[] fields) {
             this.reflectState = reflectState;
