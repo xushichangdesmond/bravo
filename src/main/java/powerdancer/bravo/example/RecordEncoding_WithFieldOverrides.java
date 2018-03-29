@@ -59,7 +59,7 @@ public class RecordEncoding_WithFieldOverrides {
         );
 
         BravoData bravoData = BravoData.buildWithOverrides(
-                (recordClass, fieldName) -> overrides.get(fieldName)
+                (recordClass, recordSchema, fieldName) -> overrides.get(fieldName)
         );
 
         JsonEncoder enc = EncoderFactory.get().jsonEncoder(schema, System.out, true);

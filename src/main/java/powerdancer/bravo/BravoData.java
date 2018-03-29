@@ -71,9 +71,8 @@ public class BravoData extends ReflectData {
     }
 
     @FunctionalInterface
-    public interface FieldAccessorOverridesProvider extends BiFunction<Class, String, FieldAccessor> {
-        @Override
-        FieldAccessor apply(Class recordClass, String fieldName);
+    public interface FieldAccessorOverridesProvider {
+        FieldAccessor apply(Class recordClass, Schema recordSchema, String fieldName);
     }
 
     static class RecordDataState {
@@ -110,7 +109,7 @@ public class BravoData extends ReflectData {
     public static BravoData buildWithOverrides(FieldAccessorOverridesProvider p) {
         return new BravoData((recordClass, recordSchema) -> {
             return recordSchema.getFields().stream().map(
-                    f->p.apply(recordClass, f.name())
+                    f->p.apply(recordClass, recordSchema, f.name())
             ).toArray(FieldAccessor[]::new);
         });
     }
@@ -132,7 +131,7 @@ public class BravoData extends ReflectData {
         };
     }
 
-    private class ClassAndSchema {
+    class ClassAndSchema {
         final Class klass;
         final Schema schema;
 
