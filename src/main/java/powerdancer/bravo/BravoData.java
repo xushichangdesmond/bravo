@@ -35,35 +35,6 @@ public class BravoData extends ReflectData {
         );
     }
 
-    @Override
-    protected Object getField(Object record, String name, int pos, Object state) {
-        if (!(state instanceof RecordDataState)) {
-            try {
-                return super.getField(record, name, pos, state);
-            }
-            catch(NullPointerException e) {
-                return null;
-            }
-        }
-        RecordDataState ds = ((RecordDataState) state);
-        FieldAccessor acc = ds.fields[pos];
-        return (acc == null) ?
-                super.getField(record, name, pos, ds.reflectState)
-                :
-                acc.get(record);
-    }
-
-    @Override
-    protected void setField(Object record, String name, int pos, Object o, Object state) {
-        RecordDataState ds = ((RecordDataState) state);
-        FieldAccessor acc = ds.fields[pos];
-        if (acc == null) {
-            super.setField(record, name, pos, o, ds.reflectState);
-        } else {
-            acc.set(record, o);
-        }
-    }
-
     @FunctionalInterface
     public interface SchemaFieldAccessorOverridesProvider extends BiFunction<Class, Schema, FieldAccessor[]> {
         @Override
